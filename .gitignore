@@ -1,12 +1,48 @@
-CMakeLists.txt.user
-CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
-Makefile
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
-_deps
-CMakeUserPresets.json
+# ESP-IDF build artifacts
+/build/
+/sdkconfig
+/sdkconfig.old
+/sdkconfig.defaults.local
+*.bin
+*.elf
+*.map
+*.lst
+
+# IDE and editor files
+/.vscode/
+/.settings/
+.project
+.cproject
+.idea/
+*.iml
+
+# Python cache and virtual environment
+__pycache__/
+*.py[cod]
+venv/
+
+# Temporary files
+*~
+*.swp
+*.swo
+*.log
+
+# macOS specific
+.DS_Store
+
+# Windows specific
+Thumbs.db
+
+# ESP-IDF managed components (if not using submodules)
+/components/esp-idf/
+/components/lvgl/
+
+# Partition tables and binary partitions
+partitions*.bin
+ota_data_initial.bin
+
+# CMake build directories
+/cmake-build-*/
+
+# Local project configurations
+/.env
