@@ -37,6 +37,14 @@ typedef enum {
     TEA_UNDRINKABLE
 } tea_state_t;
 
+// Time thresholds for each state (in seconds)
+#define TEA_NOT_BREWED_THRESHOLD        0
+#define TEA_NOT_READY_THRESHOLD         10
+#define TEA_READY_FRESH_THRESHOLD       20
+#define TEA_READY_PERFECT_STEEP_THRESHOLD 30
+#define TEA_READY_OVER_STEEP_THRESHOLD  40
+#define TEA_UNDRINKABLE_THRESHOLD       50
+
 /**********************
  *  STATIC PROTOTYPES
  **********************/
@@ -104,6 +112,9 @@ static lv_timer_t * meter2_timer;
 
 static lv_timer_t * tea_timer;
 
+lv_obj_t * baslat_btn;
+lv_obj_t * sifirla_btn;
+lv_obj_t * label_status;
 static lv_obj_t * elapsed_label;
 static uint64_t start_time = 0;
 static bool timer_running = false;
@@ -244,13 +255,79 @@ static void start_button_event_handler(lv_event_t *e) {
     if (!timer_running) {
         start_time = lv_tick_get();
         timer_running = true;
+        // Change the button states
+    
+        lv_obj_add_state(baslat_btn, LV_STATE_DISABLED);
+        lv_obj_clear_state(sifirla_btn, LV_STATE_DISABLED);
     }
 }
 
 static void stop_button_event_handler(lv_event_t *e) {
     if (timer_running) {
         timer_running = false;
-        lv_label_set_text(elapsed_label, "00:00");
+        lv_label_set_text(elapsed_label, "Elapsed: 0m 0s");
+        lv_obj_clear_state(baslat_btn, LV_STATE_DISABLED);
+        lv_obj_add_state(sifirla_btn, LV_STATE_DISABLED);
+    }
+}
+
+// Function to determine the tea state based on elapsed time
+static tea_state_t get_tea_state(uint32_t elapsed_seconds) {
+    if (elapsed_seconds >= TEA_UNDRINKABLE_THRESHOLD) {
+        return TEA_UNDRINKABLE;
+    } else if (elapsed_seconds >= TEA_READY_OVER_STEEP_THRESHOLD) {
+        return TEA_READY_OVER_STEEP;
+    } else if (elapsed_seconds >= TEA_READY_PERFECT_STEEP_THRESHOLD) {
+        return TEA_READY_PERFECT_STEEP;
+    } else if (elapsed_seconds >= TEA_READY_FRESH_THRESHOLD) {
+        return TEA_READY_FRESH;
+    } else  {
+        return TEA_NOT_READY;
+    } 
+}
+
+
+static void tea_timer_cb(lv_timer_t * timer)
+{
+    if (timer_running) {
+        uint32_t current_time = lv_tick_get();
+        uint32_t elapsed_time = (current_time - start_time) / 1000; // Convert to seconds
+
+        // Calculate minutes and seconds
+        uint32_t minutes = elapsed_time / 60;
+        uint32_t seconds = elapsed_time % 60;
+
+        // Format the time string as "32m 24s"
+        char time_str[20];
+        snprintf(time_str, sizeof(time_str), "Elapsed: %lum %lus", minutes, seconds);
+
+        lv_label_set_text(elapsed_label, time_str);
+
+        tea_state_t state = get_tea_state(elapsed_time);
+        switch (state) {
+            case TEA_NOT_BREWED:
+                lv_label_set_text(label_status, "Not brewed");
+                break;
+            case TEA_NOT_READY:
+                lv_label_set_text(label_status, "Brewing...");
+                break;
+            case TEA_READY_FRESH:
+                lv_label_set_text(label_status, "Fresh!");
+                lv_obj_set_style_text_color(label_status, lv_color_hex(0x00FF00), 0); // Green
+                break;
+            case TEA_READY_PERFECT_STEEP:
+                lv_label_set_text(label_status, "Perfect!");
+                lv_obj_set_style_text_color(label_status, lv_color_hex(0x00FF00), 0);
+                break;
+            case TEA_READY_OVER_STEEP:
+                lv_label_set_text(label_status, "Over-steeped!");
+                lv_obj_set_style_text_color(label_status, lv_color_hex(0xFFA500), 0); // Orange
+                break;
+            case TEA_UNDRINKABLE:
+                lv_label_set_text(label_status, "Undrinkable!");
+                lv_obj_set_style_text_color(label_status, lv_color_hex(0xFF0000), 0); // Red
+                break;
+        }
     }
 }
 
@@ -268,9 +345,9 @@ static void profile_create(lv_obj_t * parent)
     lv_img_set_src(avatar, &cay_standart);
 
 
-    lv_obj_t * name = lv_label_create(panel1);
-    lv_label_set_text(name, "Elena Smith");
-    lv_obj_add_style(name, &style_title, 0);
+    label_status = lv_label_create(panel1);
+    lv_label_set_text(label_status, "Elena Smith");
+    lv_obj_add_style(label_status, &style_title, 0);
 
     lv_obj_t * dsc = lv_label_create(panel1);
     lv_obj_add_style(dsc, &style_text_muted, 0);
@@ -284,7 +361,7 @@ static void profile_create(lv_obj_t * parent)
     elapsed_label = lv_label_create(panel1);
     lv_label_set_text(elapsed_label, "Elapsed: 0m 0s");
 
-    lv_obj_t * baslat_btn = lv_btn_create(panel1);
+    baslat_btn = lv_btn_create(panel1);
     lv_obj_set_height(baslat_btn, LV_SIZE_CONTENT);
 
     lv_obj_t * label = lv_label_create(baslat_btn);
@@ -292,7 +369,7 @@ static void profile_create(lv_obj_t * parent)
     lv_obj_add_event_cb(baslat_btn, start_button_event_handler, LV_EVENT_CLICKED, NULL);
     lv_obj_center(label);
 
-    lv_obj_t * sifirla_btn = lv_btn_create(panel1);
+    sifirla_btn = lv_btn_create(panel1);
     lv_obj_add_state(sifirla_btn, LV_STATE_DISABLED);
     lv_obj_set_height(sifirla_btn, LV_SIZE_CONTENT);
     lv_obj_add_event_cb(sifirla_btn, stop_button_event_handler, LV_EVENT_CLICKED, NULL);
@@ -319,7 +396,7 @@ static void profile_create(lv_obj_t * parent)
 
         lv_obj_set_grid_dsc_array(panel1, grid_1_col_dsc, grid_1_row_dsc);
         lv_obj_set_grid_cell(avatar, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 5);
-        lv_obj_set_grid_cell(name, LV_GRID_ALIGN_START, 2, 2, LV_GRID_ALIGN_CENTER, 0, 1);
+        lv_obj_set_grid_cell(label_status, LV_GRID_ALIGN_START, 2, 2, LV_GRID_ALIGN_CENTER, 0, 1);
         lv_obj_set_grid_cell(dsc, LV_GRID_ALIGN_STRETCH, 2, 4, LV_GRID_ALIGN_START, 1, 1);
         lv_obj_set_grid_cell(email_icn, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 3, 1);
         lv_obj_set_grid_cell(elapsed_label, LV_GRID_ALIGN_START, 3, 1, LV_GRID_ALIGN_CENTER, 3, 1);
@@ -350,7 +427,7 @@ static void profile_create(lv_obj_t * parent)
 
         lv_obj_set_grid_dsc_array(panel1, grid_1_col_dsc, grid_1_row_dsc);
         lv_obj_set_grid_cell(avatar, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_START, 0, 4);
-        lv_obj_set_grid_cell(name, LV_GRID_ALIGN_START, 2, 2, LV_GRID_ALIGN_CENTER, 0, 1);
+        lv_obj_set_grid_cell(label_status, LV_GRID_ALIGN_START, 2, 2, LV_GRID_ALIGN_CENTER, 0, 1);
         lv_obj_set_grid_cell(dsc, LV_GRID_ALIGN_STRETCH, 2, 2, LV_GRID_ALIGN_START, 1, 1);
         lv_obj_set_grid_cell(elapsed_label, LV_GRID_ALIGN_START, 3, 1, LV_GRID_ALIGN_CENTER, 2, 1);
         lv_obj_set_grid_cell(email_icn, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 2, 1);
@@ -382,7 +459,7 @@ static void profile_create(lv_obj_t * parent)
         lv_obj_set_style_text_align(dsc, LV_TEXT_ALIGN_CENTER, 0);
 
         lv_obj_set_grid_cell(avatar, LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 0, 1);
-        lv_obj_set_grid_cell(name, LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 1, 1);
+        lv_obj_set_grid_cell(label_status, LV_GRID_ALIGN_CENTER, 0, 2, LV_GRID_ALIGN_CENTER, 1, 1);
         lv_obj_set_grid_cell(dsc, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_START, 2, 1);
         lv_obj_set_grid_cell(email_icn, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 3, 1);
         lv_obj_set_grid_cell(elapsed_label, LV_GRID_ALIGN_START, 1, 1, LV_GRID_ALIGN_CENTER, 3, 1);
@@ -1384,24 +1461,6 @@ static void meter1_indic3_anim_cb(void * var, int32_t v)
     lv_obj_t * card = lv_obj_get_parent(meter1);
     lv_obj_t * label = lv_obj_get_child(card, -1);
     lv_label_set_text_fmt(label, "Costs: %"LV_PRId32" %%", v);
-}
-
-static void tea_timer_cb(lv_timer_t * timer)
-{
-    if (timer_running) {
-        uint32_t current_time = lv_tick_get();
-        uint32_t elapsed_time = (current_time - start_time) / 1000; // Convert to seconds
-
-        // Calculate minutes and seconds
-        uint32_t minutes = elapsed_time / 60;
-        uint32_t seconds = elapsed_time % 60;
-
-        // Format the time string as "32m 24s"
-        char time_str[20];
-        snprintf(time_str, sizeof(time_str), "Elapsed: %lum %lus", minutes, seconds);
-
-        lv_label_set_text(elapsed_label, time_str);
-    }
 }
 
 static void meter2_timer_cb(lv_timer_t * timer)
