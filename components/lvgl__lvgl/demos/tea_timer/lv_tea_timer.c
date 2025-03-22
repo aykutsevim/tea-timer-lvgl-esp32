@@ -39,11 +39,11 @@ typedef enum {
 
 // Time thresholds for each state (in seconds)
 #define TEA_NOT_BREWED_THRESHOLD        0
-#define TEA_NOT_READY_THRESHOLD         10
-#define TEA_READY_FRESH_THRESHOLD       20
-#define TEA_READY_PERFECT_STEEP_THRESHOLD 30
-#define TEA_READY_OVER_STEEP_THRESHOLD  40
-#define TEA_UNDRINKABLE_THRESHOLD       50
+#define TEA_NOT_READY_THRESHOLD         0
+#define TEA_READY_FRESH_THRESHOLD       1500
+#define TEA_READY_PERFECT_STEEP_THRESHOLD 2400
+#define TEA_READY_OVER_STEEP_THRESHOLD  7200
+#define TEA_UNDRINKABLE_THRESHOLD       10800
 
 /**********************
  *  STATIC PROTOTYPES
@@ -115,6 +115,8 @@ static lv_timer_t * tea_timer;
 lv_obj_t * baslat_btn;
 lv_obj_t * sifirla_btn;
 lv_obj_t * label_status;
+lv_obj_t * dsc;
+lv_obj_t * avatar;
 static lv_obj_t * elapsed_label;
 static uint64_t start_time = 0;
 static bool timer_running = false;
@@ -138,7 +140,7 @@ void lv_tea_timer(void)
 
     lv_coord_t tab_h;
     if(disp_size == DISP_LARGE) {
-        tab_h = 70;
+        tab_h = 100;
 #if LV_FONT_MONTSERRAT_24
         font_large     = &lv_font_montserrat_24;
 #else
@@ -204,22 +206,22 @@ void lv_tea_timer(void)
         lv_obj_t * tab_btns = lv_tabview_get_tab_btns(tv);
         lv_obj_set_style_pad_left(tab_btns, LV_HOR_RES / 2, 0);
         lv_obj_t * logo = lv_img_create(tab_btns);
-        LV_IMG_DECLARE(img_lvgl_logo);
-        lv_img_set_src(logo, &img_lvgl_logo);
+        LV_IMG_DECLARE(rdc_partner_s);
+        lv_img_set_src(logo, &rdc_partner_s);
         lv_obj_align(logo, LV_ALIGN_LEFT_MID, -LV_HOR_RES / 2 + 25, 0);
 
-        lv_obj_t * label = lv_label_create(tab_btns);
+        /*lv_obj_t * label = lv_label_create(tab_btns);
         lv_obj_add_style(label, &style_title, 0);
-        lv_label_set_text(label, "LVGL v8");
+        lv_label_set_text(label, "RDC Partner");
         lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_TOP, 10, 0);
-
-        label = lv_label_create(tab_btns);
-        lv_label_set_text(label, "Widgets demo");
+*/
+        lv_obj_t * label = lv_label_create(tab_btns);
+        lv_label_set_text(label, "Tea Timer - IOT Project");
         lv_obj_add_style(label, &style_text_muted, 0);
-        lv_obj_align_to(label, logo, LV_ALIGN_OUT_RIGHT_BOTTOM, 10, 0);
+        lv_obj_align_to(label, logo, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
     }
 
-    lv_obj_t * t1 = lv_tabview_add_tab(tv, "Profile");
+    lv_obj_t * t1 = lv_tabview_add_tab(tv, "Timer");
     lv_obj_t * t2 = lv_tabview_add_tab(tv, "Analytics");
     lv_obj_t * t3 = lv_tabview_add_tab(tv, "Shop");
     profile_create(t1);
@@ -263,9 +265,16 @@ static void start_button_event_handler(lv_event_t *e) {
 }
 
 static void stop_button_event_handler(lv_event_t *e) {
+    LV_IMG_DECLARE(cay_demle);
+
     if (timer_running) {
         timer_running = false;
-        lv_label_set_text(elapsed_label, "Elapsed: 0m 0s");
+        lv_label_set_text(label_status, "Henuz demlenmedi");
+        lv_obj_set_style_text_color(label_status, lv_color_hex(0x000000), 0); 
+        lv_label_set_text(dsc, "Soyle guzel bir cay olsa da icsek.");
+        lv_label_set_text(elapsed_label, "Gecen Sure: 0d 0s");
+        lv_img_set_src(avatar, &cay_demle);
+
         lv_obj_clear_state(baslat_btn, LV_STATE_DISABLED);
         lv_obj_add_state(sifirla_btn, LV_STATE_DISABLED);
     }
@@ -289,6 +298,11 @@ static tea_state_t get_tea_state(uint32_t elapsed_seconds) {
 
 static void tea_timer_cb(lv_timer_t * timer)
 {
+    LV_IMG_DECLARE(cay_demle);
+    LV_IMG_DECLARE(cay_acik);
+    LV_IMG_DECLARE(cay_standart);
+    LV_IMG_DECLARE(cay_zift);
+
     if (timer_running) {
         uint32_t current_time = lv_tick_get();
         uint32_t elapsed_time = (current_time - start_time) / 1000; // Convert to seconds
@@ -299,33 +313,47 @@ static void tea_timer_cb(lv_timer_t * timer)
 
         // Format the time string as "32m 24s"
         char time_str[20];
-        snprintf(time_str, sizeof(time_str), "Elapsed: %lum %lus", minutes, seconds);
+        snprintf(time_str, sizeof(time_str), "Gecen Sure: %lud %lus", minutes, seconds);
 
         lv_label_set_text(elapsed_label, time_str);
 
         tea_state_t state = get_tea_state(elapsed_time);
         switch (state) {
             case TEA_NOT_BREWED:
-                lv_label_set_text(label_status, "Not brewed");
+                lv_label_set_text(label_status, "Henuz demlenmedi");
+                lv_label_set_text(dsc, "Soyle guzel bir cay olsa da icsek.");
+                lv_obj_set_style_text_color(label_status, lv_color_hex(0x000000), 0); // Red
+                lv_img_set_src(avatar, &cay_demle);
                 break;
             case TEA_NOT_READY:
-                lv_label_set_text(label_status, "Brewing...");
+                lv_label_set_text(label_status, "Demleniyor...");
+                lv_label_set_text(dsc, "Biraz sabir, guzel bir cay icin beklenir.");
+                lv_obj_set_style_text_color(label_status, lv_color_hex(0x000000), 0); // Red
+                lv_img_set_src(avatar, &cay_acik);
                 break;
             case TEA_READY_FRESH:
-                lv_label_set_text(label_status, "Fresh!");
+                lv_label_set_text(label_status, "Taze!");
+                lv_label_set_text(dsc, "Artik icilebilir, afiyet olsun.");
                 lv_obj_set_style_text_color(label_status, lv_color_hex(0x00FF00), 0); // Green
+                lv_img_set_src(avatar, &cay_standart);
                 break;
             case TEA_READY_PERFECT_STEEP:
-                lv_label_set_text(label_status, "Perfect!");
+                lv_label_set_text(label_status, "Tam demini aldi!");
+                lv_label_set_text(dsc, "Off su cay var ya dunyalara bedel, afiyet olsun .");
                 lv_obj_set_style_text_color(label_status, lv_color_hex(0x00FF00), 0);
+                lv_img_set_src(avatar, &cay_standart);
                 break;
             case TEA_READY_OVER_STEEP:
-                lv_label_set_text(label_status, "Over-steeped!");
+                lv_label_set_text(label_status, "Hala guzel, icilir!");
+                lv_label_set_text(dsc, "Taze degil ama hic yoktan iyidir, ic bir tane daha.");
                 lv_obj_set_style_text_color(label_status, lv_color_hex(0xFFA500), 0); // Orange
+                lv_img_set_src(avatar, &cay_standart);
                 break;
             case TEA_UNDRINKABLE:
-                lv_label_set_text(label_status, "Undrinkable!");
+                lv_label_set_text(label_status, "Artik Icme!");
+                lv_label_set_text(dsc, "Zift gibi olmustur, icip de mideni bozma. Yenisini mi demlesek?");
                 lv_obj_set_style_text_color(label_status, lv_color_hex(0xFF0000), 0); // Red
+                lv_img_set_src(avatar, &cay_zift);
                 break;
         }
     }
@@ -340,18 +368,22 @@ static void profile_create(lv_obj_t * parent)
     //lv_obj_t * avatar = lv_img_create(panel1);
     //lv_img_set_src(avatar, &img_demo_widgets_avatar);
 
+    LV_IMG_DECLARE(cay_demle);
+    LV_IMG_DECLARE(cay_acik);
     LV_IMG_DECLARE(cay_standart);
-    lv_obj_t * avatar = lv_img_create(panel1);
-    lv_img_set_src(avatar, &cay_standart);
+    LV_IMG_DECLARE(cay_zift);
+
+    avatar = lv_img_create(panel1);
+    lv_img_set_src(avatar, &cay_demle);
 
 
     label_status = lv_label_create(panel1);
-    lv_label_set_text(label_status, "Elena Smith");
+    lv_label_set_text(label_status, "Henuz demlenmedi");
     lv_obj_add_style(label_status, &style_title, 0);
 
-    lv_obj_t * dsc = lv_label_create(panel1);
+    dsc = lv_label_create(panel1);
     lv_obj_add_style(dsc, &style_text_muted, 0);
-    lv_label_set_text(dsc, "This is a short description of me. Take a look at my profile!");
+    lv_label_set_text(dsc, "Soyle guzel bir cay olsa da icsek.");
     lv_label_set_long_mode(dsc, LV_LABEL_LONG_WRAP);
 
     lv_obj_t * email_icn = lv_label_create(panel1);
@@ -359,7 +391,7 @@ static void profile_create(lv_obj_t * parent)
     lv_label_set_text(email_icn, LV_SYMBOL_BULLET);
 
     elapsed_label = lv_label_create(panel1);
-    lv_label_set_text(elapsed_label, "Elapsed: 0m 0s");
+    lv_label_set_text(elapsed_label, "Gecen Sure: 0d 0s");
 
     baslat_btn = lv_btn_create(panel1);
     lv_obj_set_height(baslat_btn, LV_SIZE_CONTENT);
@@ -388,20 +420,20 @@ static void profile_create(lv_obj_t * parent)
 
         /*Create the top panel*/
         static lv_coord_t grid_1_col_dsc[] = {LV_GRID_CONTENT, 5, LV_GRID_CONTENT, LV_GRID_FR(2), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-        static lv_coord_t grid_1_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_CONTENT, 10, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
+        static lv_coord_t grid_1_row_dsc[] = {LV_GRID_CONTENT, 30, LV_GRID_CONTENT, LV_GRID_CONTENT, 10, LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
 
         lv_obj_set_grid_dsc_array(parent, grid_main_col_dsc, grid_main_row_dsc);
 
         lv_obj_set_grid_cell(panel1, LV_GRID_ALIGN_STRETCH, 0, 2, LV_GRID_ALIGN_CENTER, 0, 1);
 
         lv_obj_set_grid_dsc_array(panel1, grid_1_col_dsc, grid_1_row_dsc);
-        lv_obj_set_grid_cell(avatar, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 0, 5);
-        lv_obj_set_grid_cell(label_status, LV_GRID_ALIGN_START, 2, 2, LV_GRID_ALIGN_CENTER, 0, 1);
-        lv_obj_set_grid_cell(dsc, LV_GRID_ALIGN_STRETCH, 2, 4, LV_GRID_ALIGN_START, 1, 1);
-        lv_obj_set_grid_cell(email_icn, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 3, 1);
-        lv_obj_set_grid_cell(elapsed_label, LV_GRID_ALIGN_START, 3, 1, LV_GRID_ALIGN_CENTER, 3, 1);
-        lv_obj_set_grid_cell(baslat_btn, LV_GRID_ALIGN_STRETCH, 4, 1, LV_GRID_ALIGN_CENTER, 3, 2);
-        lv_obj_set_grid_cell(sifirla_btn, LV_GRID_ALIGN_STRETCH, 5, 1, LV_GRID_ALIGN_CENTER, 3, 2);
+        lv_obj_set_grid_cell(avatar, LV_GRID_ALIGN_CENTER, 0, 1, LV_GRID_ALIGN_CENTER, 1, 6);
+        lv_obj_set_grid_cell(label_status, LV_GRID_ALIGN_START, 2, 2, LV_GRID_ALIGN_CENTER, 2, 1);
+        lv_obj_set_grid_cell(dsc, LV_GRID_ALIGN_STRETCH, 2, 4, LV_GRID_ALIGN_START, 3, 1);
+        lv_obj_set_grid_cell(email_icn, LV_GRID_ALIGN_CENTER, 2, 1, LV_GRID_ALIGN_CENTER, 5, 1);
+        lv_obj_set_grid_cell(elapsed_label, LV_GRID_ALIGN_START, 3, 1, LV_GRID_ALIGN_CENTER, 5, 1);
+        lv_obj_set_grid_cell(baslat_btn, LV_GRID_ALIGN_STRETCH, 4, 1, LV_GRID_ALIGN_CENTER, 5, 2);
+        lv_obj_set_grid_cell(sifirla_btn, LV_GRID_ALIGN_STRETCH, 5, 1, LV_GRID_ALIGN_CENTER, 5, 2);
     }
     else if(disp_size == DISP_MEDIUM) {
         static lv_coord_t grid_main_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
@@ -484,7 +516,7 @@ static void analytics_create(lv_obj_t * parent)
     lv_obj_set_style_max_height(chart1_cont, 300, 0);
 
     lv_obj_t * title = lv_label_create(chart1_cont);
-    lv_label_set_text(title, "Unique visitors");
+    lv_label_set_text(title, "Aylara Gore Cay Demleme Sayilari");
     lv_obj_add_style(title, &style_title, 0);
     lv_obj_set_grid_cell(title, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 0, 1);
 
@@ -528,7 +560,7 @@ static void analytics_create(lv_obj_t * parent)
     lv_obj_set_grid_dsc_array(chart2_cont, grid_chart_col_dsc, grid_chart_row_dsc);
 
     title = lv_label_create(chart2_cont);
-    lv_label_set_text(title, "Monthly revenue");
+    lv_label_set_text(title, "Demlenen/Icilen Caylar");
     lv_obj_add_style(title, &style_title, 0);
     lv_obj_set_grid_cell(title, LV_GRID_ALIGN_START, 0, 2, LV_GRID_ALIGN_START, 0, 1);
 
@@ -588,7 +620,7 @@ static void analytics_create(lv_obj_t * parent)
 
     lv_meter_scale_t * scale;
     lv_meter_indicator_t * indic;
-    meter1 = create_meter_box(parent, "Monthly Target", "Revenue: 63%", "Sales: 44%", "Costs: 58%");
+    meter1 = create_meter_box(parent, "Aylik Hedef", "Demlenen: 63%", "Icilen: 44%", "Dokulen: 58%");
     lv_obj_add_flag(lv_obj_get_parent(meter1), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
     scale = lv_meter_add_scale(meter1);
     lv_meter_set_scale_range(meter1, scale, 0, 100, 270, 90);
@@ -642,7 +674,7 @@ static void analytics_create(lv_obj_t * parent)
 
     meter2_timer = lv_timer_create(meter2_timer_cb, 100, meter2_indic);
 
-    meter3 = create_meter_box(parent, "Network Speed", "Low speed", "Normal Speed", "High Speed");
+    meter3 = create_meter_box(parent, "Demleme Hizi", "Low speed", "Normal Speed", "High Speed");
     if(disp_size < DISP_LARGE) lv_obj_add_flag(lv_obj_get_parent(meter3), LV_OBJ_FLAG_FLEX_IN_NEW_TRACK);
 
     /*Add a special circle to the needle's pivot*/
@@ -694,7 +726,7 @@ static void analytics_create(lv_obj_t * parent)
     lv_obj_add_style(mbps_label, &style_title, 0);
 
     lv_obj_t * mbps_unit_label = lv_label_create(meter3);
-    lv_label_set_text(mbps_unit_label, "Mbps");
+    lv_label_set_text(mbps_unit_label, "Dem/sn");
 
     lv_anim_init(&a);
     lv_anim_set_values(&a, 10, 60);

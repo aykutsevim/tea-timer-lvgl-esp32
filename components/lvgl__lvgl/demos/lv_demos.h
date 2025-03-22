@@ -15,10 +15,6 @@ extern "C" {
  *********************/
 #include "../lvgl.h"
 
-#if LV_USE_DEMO_WIDGETS
-#include "widgets/lv_demo_widgets.h"
-#endif
-
 #if LV_USE_TEA_TIMER
 #include "tea_timer/lv_tea_timer.h"
 #endif
